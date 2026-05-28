@@ -352,3 +352,8 @@ FodyWeavers.xsd
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
+ 
+# Local Environment Caches
+.dotnet/
+.nuget/
+.userprofile/
