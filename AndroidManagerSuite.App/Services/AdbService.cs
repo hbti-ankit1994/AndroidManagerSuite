@@ -270,7 +270,7 @@ public sealed class AdbService
         }
 
         var isDirectory = match.Groups["perm"].Value[0] is 'd' or 'l';
-        var size = FormatBytes(long.Parse(match.Groups["size"].Value, CultureInfo.InvariantCulture));
+        var size = isDirectory ? string.Empty : FormatBytes(long.Parse(match.Groups["size"].Value, CultureInfo.InvariantCulture));
         var modified = $"{match.Groups["date"].Value} {match.Groups["time"].Value}";
 
         return new FileEntry(name, CombineRemotePath(parentPath, name), isDirectory, size, modified);
