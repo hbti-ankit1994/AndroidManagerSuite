@@ -100,9 +100,9 @@ public sealed class DonutGauge : Control
 
         if (ShowCenterText)
         {
-            DrawCenteredText(drawingContext, $"{percent:0}%", 26, FontWeights.SemiBold, -18, Brushes.White);
-            DrawCenteredText(drawingContext, Title, 13, FontWeights.SemiBold, 16, new SolidColorBrush(Color.FromRgb(197, 213, 232)));
-            DrawCenteredText(drawingContext, Detail, 11, FontWeights.Normal, 37, new SolidColorBrush(Color.FromRgb(125, 148, 175)));
+            DrawCenteredText(drawingContext, $"{percent:0}%", 24, FontWeights.SemiBold, -14, Brushes.White);
+            DrawCenteredText(drawingContext, Title, 12, FontWeights.SemiBold, 12, new SolidColorBrush(Color.FromRgb(197, 213, 232)));
+            DrawCenteredText(drawingContext, Detail, 11, FontWeights.Normal, 28, new SolidColorBrush(Color.FromRgb(125, 148, 175)));
         }
     }
 
@@ -146,7 +146,8 @@ public sealed class DonutGauge : Control
         {
             MaxTextWidth = Math.Max(10, ActualWidth - 36),
             TextAlignment = TextAlignment.Center,
-            Trimming = TextTrimming.CharacterEllipsis
+            Trimming = TextTrimming.CharacterEllipsis,
+            MaxLineCount = 1
         };
 
         context.PushClip(new RectangleGeometry(new Rect(8, 0, Math.Max(1, ActualWidth - 16), ActualHeight)));

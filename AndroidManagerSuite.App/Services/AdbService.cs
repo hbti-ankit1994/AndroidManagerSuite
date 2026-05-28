@@ -398,7 +398,18 @@ public sealed class AdbService
         var usedPercentText = parts.FirstOrDefault(part => part.EndsWith('%'));
         var percent = double.TryParse(usedPercentText?.TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
 
-        var detail = parts.Length >= 4 ? $"{parts[^4]} used of {parts[^5]}" : line;
+        string detail;
+        if (parts.Length >= 4 && long.TryParse(parts[^5], out var size) && long.TryParse(parts[^4], out var used))
+        {
+            var sizeGb = size / 1024.0 / 1024.0;
+            var usedGb = used / 1024.0 / 1024.0;
+            detail = $"{usedGb:0.0} GB / {sizeGb:0.0} GB";
+        }
+        else
+        {
+            detail = parts.Length >= 4 ? $"{parts[^4]} used of {parts[^5]}" : line;
+        }
+
         return (Math.Clamp(percent, 0, 100), detail);
     }
 

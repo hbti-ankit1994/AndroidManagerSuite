@@ -438,23 +438,29 @@ public partial class MainWindow : Window
 
             if (devices.Count != _state.Devices.Count || !isStillConnected)
             {
-                _state.Devices.Clear();
-                foreach (var device in devices)
+                _suppressDeviceSelectionRefresh = true;
+                try
                 {
-                    _state.Devices.Add(device);
-                }
+                    _state.Devices.Clear();
+                    foreach (var device in devices)
+                    {
+                        _state.Devices.Add(device);
+                    }
 
-                if (!isStillConnected && selectedSerial != null)
-                {
-                    _suppressDeviceSelectionRefresh = true;
-                    try
+                    if (isStillConnected && selectedSerial != null)
+                    {
+                        var deviceToSelect = _state.Devices.FirstOrDefault(d => d.Serial == selectedSerial);
+                        DeviceComboBox.SelectedItem = deviceToSelect;
+                        _state.SelectedDevice = deviceToSelect;
+                    }
+                    else if (selectedSerial != null)
                     {
                         ClearDeviceData();
                     }
-                    finally
-                    {
-                        _suppressDeviceSelectionRefresh = false;
-                    }
+                }
+                finally
+                {
+                    _suppressDeviceSelectionRefresh = false;
                 }
             }
         }
@@ -479,7 +485,7 @@ public partial class MainWindow : Window
         StorageGauge.Value = 0;
         BatteryGauge.Value = 0;
         
-        BatteryLevelTextBlock.Text = "--%";
+
         LoadAverageTextBlock.Text = "-";
         MemoryDetailTextBlock.Text = "-";
         StorageDetailTextBlock.Text = "-";
@@ -545,7 +551,7 @@ public partial class MainWindow : Window
         {
             var battery = await _adbService.GetBatteryInfoAsync(serial, token);
             BatteryGauge.Value = battery.Level ?? 0;
-            BatteryLevelTextBlock.Text = battery.Level is null ? "--%" : $"{battery.Level}%";
+
             BatteryStatusTextBlock.Text = $"Status: {battery.Status}";
             BatteryHealthTextBlock.Text = $"Health: {battery.Health}";
             BatteryTemperatureTextBlock.Text = $"Temp: {battery.Temperature}";
@@ -892,20 +898,14 @@ public partial class MainWindow : Window
         RebootButton.IsEnabled = _state.SelectedDevice is not null;
         if (_state.SelectedDevice is null)
         {
-            WifiConnectButton.Content = "Connect IP";
-            WifiConnectButton.IsEnabled = true;
             DisconnectButton.Visibility = Visibility.Collapsed;
         }
         else if (_state.SelectedDevice.Serial.Contains(':'))
         {
-            WifiConnectButton.Content = "Wi-Fi Connected";
-            WifiConnectButton.IsEnabled = false;
             DisconnectButton.Visibility = Visibility.Visible;
         }
         else
         {
-            WifiConnectButton.Content = "Switch to Wi-Fi";
-            WifiConnectButton.IsEnabled = true;
             DisconnectButton.Visibility = Visibility.Collapsed;
         }
     }
@@ -971,47 +971,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void WifiConnectButton_OnClick(object sender, RoutedEventArgs e)
-    {
-        if (_state.SelectedDevice is null)
-        {
-            var ip = await PromptForInputAsync("Connect Wi-Fi", "Enter the device IP address and port (e.g., 192.168.1.50:5555):");
-            if (!string.IsNullOrWhiteSpace(ip))
-            {
-                await RunWithStatusAsync($"Connecting to {ip}...", async token =>
-                {
-                    await _adbService.ConnectAsync(ip, token);
-                    await RefreshDevicesAsync(forceSelectSerial: ip);
-                    SaveIpAddress(ip);
-                });
-            }
-            return;
-        }
 
-        var serial = _state.SelectedDevice.Serial;
-        await RunWithStatusAsync("Switching to Wi-Fi...", async token =>
-        {
-            var ip = await _adbService.GetDeviceIpAddressAsync(serial, token);
-            if (string.IsNullOrWhiteSpace(ip))
-            {
-                throw new Exception("Could not detect device IP address. Ensure it is connected to Wi-Fi.");
-            }
-
-            SetStatus($"Enabling TCP/IP on {serial}...");
-            await _adbService.SwitchToTcpIpAsync(serial, token);
-            
-            // Wait for adbd to restart in tcpip mode
-            await Task.Delay(2000, token);
-            
-            SetStatus($"Connecting to {ip}:5555...");
-            await _adbService.ConnectAsync(ip, token);
-            
-            await RefreshDevicesAsync(forceSelectSerial: ip);
-            
-            SaveIpAddress(ip);
-            ShowToast("Wi-Fi Connected", $"Successfully connected wirelessly to {ip}", showOpenButton: false);
-        });
-    }
 
     private async void DisconnectButton_OnClick(object sender, RoutedEventArgs e)
     {

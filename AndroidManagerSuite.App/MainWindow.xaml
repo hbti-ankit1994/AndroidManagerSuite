@@ -18,6 +18,33 @@
         <SolidColorBrush x:Key="AccentPurpleBrush" Color="#9B72F2"/>
         <SolidColorBrush x:Key="DangerBrush" Color="#FF5C7A"/>
 
+        <!-- Fix selection colors for ListView/DataGrid in Dark Mode -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderThickness="0" Padding="4">
+                            <GridViewRowPresenter Content="{TemplateBinding Content}" Columns="{Binding Path=View.Columns, RelativeSource={RelativeSource AncestorType=ListView}}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="Black"/>
+                                <Setter Property="Foreground" Value="#00BCF2"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         </Style>
@@ -162,8 +189,6 @@
                     <ComboBox x:Name="DeviceComboBox" Grid.Column="3" DisplayMemberPath="DisplayName" Foreground="#07111F" Background="#EEF7FF" SelectionChanged="DeviceComboBox_OnSelectionChanged"/>
                     <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="12,0,0,0">
                         <Button x:Name="RefreshDevicesButton" Content="Refresh" Click="RefreshDevicesButton_OnClick"/>
-                        
-                        <Button x:Name="WifiConnectButton" Content="Wi-Fi Connect" Style="{StaticResource SecondaryButton}" Click="WifiConnectButton_OnClick"/>
                         <Button x:Name="DisconnectButton" Content="Disconnect" Style="{StaticResource SecondaryButton}" Click="DisconnectButton_OnClick" Visibility="Collapsed"/>
                         <Button x:Name="RebootButton" Content="Reboot ▼" Style="{StaticResource SecondaryButton}" Click="RebootButton_OnClick">
                             <Button.ContextMenu>
@@ -309,8 +334,7 @@
                             </Border>
                             <Border Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,0">
                                 <StackPanel VerticalAlignment="Center">
-                                    <controls:DonutGauge x:Name="BatteryGauge" Height="120" Title="Battery" Detail="" AccentBrush="#FFC107"/>
-                                    <TextBlock x:Name="BatteryLevelTextBlock" Text="--%" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                    <controls:DonutGauge x:Name="BatteryGauge" Height="160" Title="Battery" Detail="" AccentBrush="#FFC107"/>
                                 </StackPanel>
                             </Border>
                         </UniformGrid>
