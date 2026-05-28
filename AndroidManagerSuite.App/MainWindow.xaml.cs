@@ -970,8 +970,19 @@ public partial class MainWindow : Window
             UpdateCommandState();
         }
     }
-
-
+    private async void ConnectWifiButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var ip = await PromptForInputAsync("Connect Wi-Fi", "Enter the device IP address and port (e.g., 192.168.1.50:5555):");
+        if (!string.IsNullOrWhiteSpace(ip))
+        {
+            await RunWithStatusAsync($"Connecting to {ip}...", async token =>
+            {
+                await _adbService.ConnectAsync(ip, token);
+                await RefreshDevicesAsync(forceSelectSerial: ip);
+                SaveIpAddress(ip);
+            });
+        }
+    }
 
     private async void DisconnectButton_OnClick(object sender, RoutedEventArgs e)
     {

@@ -30,7 +30,7 @@ dotnet run --project AndroidManagerSuite.App\AndroidManagerSuite.App.csproj
 1. Connect your Android device via USB with **USB Debugging** enabled.
 2. Accept the authorization prompt on the device screen.
 3. The app will automatically detect and connect to your device.
-4. From the top-right corner, you can switch to Wi-Fi, mirror your screen, or reboot the device.
+4. From the top-right corner, mirror your screen, or reboot the device.
 
 ## Bundled Tools
 - **ADB**: Used for all low-level device communication.
