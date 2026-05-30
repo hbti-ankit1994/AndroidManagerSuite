@@ -16,8 +16,9 @@ namespace AndroidManagerSuite.App;
 
 public partial class MainWindow : Window
 {
-    private static readonly string DefaultAdbSdkPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SDK", "platform-tools");
-    private static readonly string ScrcpyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SDK", "scrcpy", "scrcpy.exe");
+    private static readonly string BaseAppPath = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+    private static readonly string DefaultAdbSdkPath = Path.Combine(BaseAppPath, "SDK", "platform-tools");
+    private static readonly string ScrcpyPath = Path.Combine(BaseAppPath, "SDK", "scrcpy", "scrcpy.exe");
 
     private readonly AdbService _adbService = new(DefaultAdbSdkPath);
     private readonly MainWindowState _state = new();
@@ -73,6 +74,11 @@ public partial class MainWindow : Window
 
         Loaded += async (_, _) => 
         {
+            if (!Directory.Exists(Path.Combine(BaseAppPath, "SDK")))
+            {
+                await ShowInfoAsync("Missing Dependencies", "The SDK folder is missing. If you ran this application directly from inside the .zip file without extracting it, please close this window, extract the entire .zip file to a normal folder, and run it again.");
+                return;
+            }
             await RefreshDevicesAsync();
             _heartbeatTimer.Start();
         };
@@ -973,14 +979,58 @@ public partial class MainWindow : Window
     private async void ConnectWifiButton_OnClick(object sender, RoutedEventArgs e)
     {
         var ip = await PromptForInputAsync("Connect Wi-Fi", "Enter the device IP address and port (e.g., 192.168.1.50:5555):");
-        if (!string.IsNullOrWhiteSpace(ip))
+        if (string.IsNullOrWhiteSpace(ip)) return;
+
+        bool needsUsbActivation = false;
+        await RunWithStatusAsync($"Connecting to {ip}...", async token =>
         {
-            await RunWithStatusAsync($"Connecting to {ip}...", async token =>
+            try
             {
                 await _adbService.ConnectAsync(ip, token);
                 await RefreshDevicesAsync(forceSelectSerial: ip);
                 SaveIpAddress(ip);
-            });
+            }
+            catch (Exception ex) when (ex.Message.Contains("actively refused"))
+            {
+                needsUsbActivation = true;
+            }
+        });
+
+        if (needsUsbActivation)
+        {
+            var confirm = await ShowConfirmAsync("Connection Refused", 
+                "The device actively refused the connection. It likely rebooted and lost its Wi-Fi debugging state.\n\nWould you like to connect it via USB now so the tool can re-enable Wi-Fi mode automatically?");
+            
+            if (confirm)
+            {
+                await RunWithStatusAsync("Waiting for USB device (20s timeout)...", async token => 
+                {
+                    int attempts = 0;
+                    while (attempts < 20)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        var devices = await _adbService.GetDevicesAsync(token);
+                        var usbDevice = devices.FirstOrDefault(d => !d.Serial.Contains(':') && d.State == "device");
+                        if (usbDevice != null)
+                        {
+                            SetStatus($"Found {usbDevice.Serial}. Enabling TCP/IP...");
+                            await _adbService.SwitchToTcpIpAsync(usbDevice.Serial, token);
+                            await Task.Delay(2000, token);
+                            
+                            SetStatus($"Connecting to {ip}...");
+                            await _adbService.ConnectAsync(ip, token);
+                            await RefreshDevicesAsync(forceSelectSerial: ip);
+                            SaveIpAddress(ip);
+                            ShowToast("Wi-Fi Connected", $"Successfully re-enabled and connected to {ip}", showOpenButton: false);
+                            return;
+                        }
+                        await Task.Delay(1000, token);
+                        attempts++;
+                        SetStatus($"Waiting for USB device ({20 - attempts}s remaining)...");
+                    }
+                    SetStatus("Timed out waiting for USB connection.");
+                });
+            }
         }
     }
 

@@ -10,11 +10,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\AppIcon.png" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\AppIcon.png" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="SDK\**\*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
+  <Target Name="CopySDKToOutput" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <SDKFiles Include="SDK\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SDKFiles)" DestinationFolder="$(OutDir)SDK\%(RecursiveDir)" Condition="'$(OutDir)' != ''" />
+    <Copy SourceFiles="@(SDKFiles)" DestinationFolder="$(PublishDir)SDK\%(RecursiveDir)" Condition="'$(PublishDir)' != ''" />
+  </Target>
 
 </Project>
